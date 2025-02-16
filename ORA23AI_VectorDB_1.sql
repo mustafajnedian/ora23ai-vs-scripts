@@ -165,3 +165,15 @@ select id
 from vt1
 order by vector_distance(vector('[6,8]'), v, euclidean)
 fetch first 5 rows only;
+
+select id
+from vt1
+order by vector_distance(vector('[2.5, 8.5]'), v, euclidean)
+fetch first 5 rows only;
+
+ 
+--Vector data tends not to be evenly distributed, and in many cases, 
+--Vector data tends to be clustered into groups.
+--Similarity searches will tend to get data from one or more clusters 
+--depending on the value of the query Vector and the fetch size.
+
