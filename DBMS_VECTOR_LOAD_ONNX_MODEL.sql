@@ -1,6 +1,8 @@
-select name
-from v$database
-
+SELECT
+    name
+FROM
+    v$database 
+    
 show pdbs;
 
  alter session set container=FREEPDB1;
@@ -24,11 +26,9 @@ show pdbs;
 END;
 /
 
-
 SELECT VECTOR_EMBEDDING(ALL_MINILM_L12_V2 USING 'The quick brown fox jumped' as DATA) AS embedding;
 
 select vector_embedding(all_minilm_l12_v2 using 'Quick test' as data) AS my_vector;
-
 
 
 create table movie_quotes as
@@ -41,29 +41,100 @@ from   external (
            movie_year   number(4)
          )
          type oracle_loader
-         default directory DM_DUMP
-         access parameters (
-           records delimited by newline
-           skip 1
-           badfile DM_DUMP
-           logfile DM_DUMP:'moview_quotes_ext_tab_%a_%p.log'
-           discardfile DM_DUMP
-           fields csv with embedded terminated by ',' optionally enclosed by '"'
-           missing field values are null
-           (
-             movie_quote char(400),
-             movie,
-             movie_type,
-             movie_year
-           )
+    DEFAULT DIRECTORY dm_dump
+    ACCESS PARAMETERS (
+        RECORDS DELIMITED BY NEWLINE
+            SKIP 1
+            BADFILE dm_dump
+            LOGFILE dm_dump : 'moview_quotes_ext_tab_%a_%p.log'
+            DISCARDFILE dm_dump
+        FIELDS CSV WITH EMBEDDED TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' MISSING FIELD VALUES ARE NULL (
+            movie_quote CHAR ( 400 ),
+            movie,
+            movie_type,
+            movie_year
         )
-        location ('movie_quotes.csv')
-        reject limit unlimited
-      );
+    )
+    LOCATION ( 'movie_quotes.csv' )
+REJECT LIMIT UNLIMITED );
 
 SELECT *
 FROM TAB;
 
+SELECT count(*)
+FROM MOVIE_QUOTES;
+
 SELECT *
 FROM MOVIE_QUOTES;
 
+desc MOVIE_QUOTES
+
+ALTER TABLE movie_quotes ADD (
+    movie_quote_vector vector
+);
+
+UPDATE movie_quotes
+SET
+    movie_quote_vector = VECTOR_EMBEDDING(all_minilm_l12_v2
+        USING movie_quote AS data
+    );
+
+variable search_text varchar2(100);
+exec :search_text := 'Sporty movies';
+
+set linesize 200
+column movie format a50
+column movie_quote format a100
+
+SELECT vector_distance(movie_quote_vector, (vector_embedding(all_minilm_l12_v2 using :search_text as data))) as distance,
+       movie,
+       movie_quote
+FROM   movie_quotes
+order by 1
+fetch approximate first 5 rows only;
+
+
+
+variable search_text varchar2(100);
+exec :search_text := 'Films about war';
+
+set linesize 200
+column movie format a50
+column movie_quote format a100
+
+SELECT vector_distance(movie_quote_vector, (vector_embedding(all_minilm_l12_v2 using :search_text as data))) as distance,
+       movie,
+       movie_quote
+FROM   movie_quotes
+order by 1
+fetch approximate first 5 rows only;
+
+
+
+
+
+
+
+
+
+
+
+CREATE TABLE my_vect_tab (
+     v1  VECTOR(3, FLOAT32),
+     v2  VECTOR(2, FLOAT64),
+     v3  VECTOR(1, INT8),
+     v4  VECTOR(1024, BINARY),
+     v5  VECTOR(1, *),
+     v6  VECTOR(*, FLOAT32),
+     v7  VECTOR(*, *),
+     v8  VECTOR,
+     v9  VECTOR(10),
+     v10 VECTOR(*, *, DENSE),
+     v11 VECTOR(1024, FLOAT32, DENSE),
+     v12 VECTOR(1000, INT8, SPARSE),
+     v13 VECTOR(*, INT8, SPARSE),
+     v14 VECTOR(*, *, SPARSE),
+     v15 VECTOR(2048, FLOAT32, *)
+   );
+
+desc my_vect_tab
